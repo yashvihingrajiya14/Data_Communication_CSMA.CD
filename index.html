@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CSMA/CD Protocol Simulator</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+
+<!-- ═══════════════════════════ NAVBAR ═══════════════════════════ -->
+<nav class="navbar">
+  <div class="nav-brand">
+    <span class="nav-logo">⬡</span>
+    <span class="nav-title">NetSim <em>CSMA/CD</em></span>
+  </div>
+  <ul class="nav-links">
+    <li><a href="#" class="nav-link active" data-tab="dashboard">Dashboard</a></li>
+    <li><a href="#" class="nav-link" data-tab="simulator">Network Simulator</a></li>
+    <li><a href="#" class="nav-link" data-tab="backoff">Backoff Visualizer</a></li>
+    <li><a href="#" class="nav-link" data-tab="learning">Learning Mode</a></li>
+    <li><a href="#" class="nav-link" data-tab="settings">Settings</a></li>
+  </ul>
+  <div class="nav-status">
+    <span class="status-dot" id="globalStatus"></span>
+    <span id="globalStatusText">Idle</span>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════ MAIN CONTENT ═══════════════════════════ -->
+<main class="main-content">
+
+  <!-- ─────────── DASHBOARD TAB ─────────── -->
+  <section class="tab-pane active" id="tab-dashboard">
+    <div class="page-header">
+      <h1 class="page-title">CSMA/CD Protocol Simulator</h1>
+      <p class="page-subtitle">Interactive visualization of Carrier Sense Multiple Access with Collision Detection</p>
+    </div>
+
+    <!-- Stats Row -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon">🖥</div>
+        <div class="stat-value" id="dash-nodes">0</div>
+        <div class="stat-label">Total Nodes</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">📦</div>
+        <div class="stat-value" id="dash-generated">0</div>
+        <div class="stat-label">Frames Generated</div>
+      </div>
+      <div class="stat-card success">
+        <div class="stat-icon">✅</div>
+        <div class="stat-value" id="dash-success">0</div>
+        <div class="stat-label">Frames Sent Successfully</div>
+      </div>
+      <div class="stat-card danger">
+        <div class="stat-icon">💥</div>
+        <div class="stat-value" id="dash-collisions">0</div>
+        <div class="stat-label">Total Collisions</div>
+      </div>
+      <div class="stat-card info">
+        <div class="stat-icon">📊</div>
+        <div class="stat-value" id="dash-efficiency">0%</div>
+        <div class="stat-label">Network Efficiency</div>
+      </div>
+    </div>
+
+    <!-- Ethernet Bus Topology -->
+    <div class="glass-card full-width">
+      <h3 class="card-title">Ethernet Bus Topology</h3>
+      <canvas id="dashTopologyCanvas" width="900" height="300"></canvas>
+    </div>
+
+    <!-- Quick Start -->
+    <div class="glass-card full-width">
+      <h3 class="card-title">Quick Start</h3>
+      <div class="quick-start-buttons">
+        <button class="btn btn-primary" onclick="switchTab('simulator'); startSimulation();">▶ Start Simulation</button>
+        <button class="btn btn-secondary" onclick="switchTab('learning')">📖 Learning Mode</button>
+        <button class="btn btn-accent" onclick="switchTab('settings')">⚙ Configure Network</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────── NETWORK SIMULATOR TAB ─────────── -->
+  <section class="tab-pane" id="tab-simulator">
+    <div class="page-header">
+      <h1 class="page-title">Network Simulator</h1>
+      <p class="page-subtitle">Real-time CSMA/CD protocol visualization</p>
+    </div>
+
+    <div class="sim-layout">
+      <!-- Canvas -->
+      <div class="sim-canvas-wrapper glass-card">
+        <canvas id="simCanvas" width="900" height="420"></canvas>
+        <div id="collisionBanner" class="collision-banner hidden">💥 COLLISION DETECTED</div>
+      </div>
+
+      <!-- Controls + Info -->
+      <div class="sim-sidebar">
+        <div class="glass-card">
+          <h3 class="card-title">Controls</h3>
+          <div class="control-buttons">
+            <button class="btn btn-primary" id="btnStart" onclick="startSimulation()">▶ Start</button>
+            <button class="btn btn-warning" id="btnPause" onclick="pauseSimulation()" disabled>⏸ Pause</button>
+            <button class="btn btn-danger" id="btnReset" onclick="resetSimulation()">↺ Reset</button>
+            <button class="btn btn-secondary" id="btnGenerate" onclick="generateFrames()">📦 Generate Frames</button>
+            <button class="btn btn-accent" id="btnForce" onclick="forceCollision()">💥 Force Collision</button>
+          </div>
+        </div>
+
+        <div class="glass-card">
+          <h3 class="card-title">Live Status</h3>
+          <div class="info-grid">
+            <div class="info-row">
+              <span class="info-label">Channel</span>
+              <span class="info-value" id="infoChannel"><span class="badge badge-idle">IDLE</span></span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Transmitting</span>
+              <span class="info-value" id="infoTransmitting">—</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Collisions</span>
+              <span class="info-value" id="infoCollisions">0</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Backoff Slot</span>
+              <span class="info-value" id="infoBackoff">—</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Sim Time</span>
+              <span class="info-value" id="infoTime">0.00s</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Frames Sent</span>
+              <span class="info-value" id="infoSent">0</span>
+            </div>
+          </div>
+        </div>
+
+
+      </div>
+    </div>
+  </section>
+
+
+
+  <!-- ─────────── BACKOFF VISUALIZER TAB ─────────── -->
+  <section class="tab-pane" id="tab-backoff">
+    <div class="page-header">
+      <h1 class="page-title">Binary Exponential Backoff Visualizer</h1>
+      <p class="page-subtitle">How the backoff window grows with each collision</p>
+    </div>
+
+    <div class="glass-card full-width">
+      <h3 class="card-title">Backoff Window Formula</h3>
+      <div class="formula-box">
+        Backoff Time = Random(0, 2<sup>k</sup> − 1) × SlotTime &nbsp;&nbsp; where <em>k</em> = collision count
+      </div>
+    </div>
+
+    <div class="card-row">
+      <div class="glass-card">
+        <h3 class="card-title">Backoff Window Growth</h3>
+        <canvas id="backoffWindowCanvas" width="440" height="300"></canvas>
+      </div>
+      <div class="glass-card">
+        <h3 class="card-title">Simulate Backoff for Node</h3>
+        <div class="backoff-sim-controls">
+          <label>Select Node:
+            <select id="backoffNodeSelect" class="form-select"></select>
+          </label>
+          <button class="btn btn-primary" onclick="simulateBackoffNode()">Simulate</button>
+        </div>
+        <canvas id="backoffNodeCanvas" width="400" height="240"></canvas>
+        <div id="backoffResult" class="backoff-result"></div>
+      </div>
+    </div>
+
+    <div class="glass-card full-width">
+      <h3 class="card-title">Live Node Backoff Table</h3>
+      <div id="backoffTable" class="node-table-wrap"></div>
+    </div>
+  </section>
+
+  <!-- ─────────── LEARNING MODE TAB ─────────── -->
+  <section class="tab-pane" id="tab-learning">
+    <div class="page-header">
+      <h1 class="page-title">Learning Mode</h1>
+      <p class="page-subtitle">Step-by-step walkthrough of the CSMA/CD protocol</p>
+    </div>
+
+    <div class="learning-layout">
+      <div class="learn-canvas-wrap glass-card">
+        <canvas id="learnCanvas" width="760" height="340"></canvas>
+      </div>
+
+      <div class="learn-sidebar">
+        <div class="glass-card">
+          <h3 class="card-title">Step <span id="learnStepNum">1</span> / <span id="learnStepTotal">8</span></h3>
+          <div class="learn-step-title" id="learnStepTitle">Node Senses Channel</div>
+          <div class="learn-explanation" id="learnExplanation">
+            Before transmitting, a node first listens to the channel to determine if another node is currently transmitting. This is called "Carrier Sense."
+          </div>
+          <div class="progress-bar-wrap">
+            <div class="progress-bar" id="learnProgress" style="width:12.5%"></div>
+          </div>
+        </div>
+
+        <div class="glass-card">
+          <h3 class="card-title">Controls</h3>
+          <div class="learn-controls">
+            <button class="btn btn-secondary" id="btnLearnPrev" onclick="learnPrev()" disabled>← Previous</button>
+            <button class="btn btn-primary" id="btnLearnNext" onclick="learnNext()">Next →</button>
+            <button class="btn btn-accent" id="btnLearnAuto" onclick="learnAuto()">⏵ Auto Run</button>
+          </div>
+        </div>
+
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────── SETTINGS TAB ─────────── -->
+  <section class="tab-pane" id="tab-settings">
+    <div class="page-header">
+      <h1 class="page-title">Settings</h1>
+      <p class="page-subtitle">Configure network parameters</p>
+    </div>
+
+    <div class="settings-grid">
+      <div class="glass-card">
+        <h3 class="card-title">Network Parameters</h3>
+        <div class="setting-group">
+          <label class="setting-label">Number of Nodes: <span id="lblNodes">4</span></label>
+          <input type="range" min="2" max="20" value="4" id="setNodes" class="range-input" oninput="updateSetting('nodes',this.value)"/>
+        </div>
+        <div class="setting-group">
+          <label class="setting-label">Frame Generation Rate: <span id="lblGenRate">3</span> /s</label>
+          <input type="range" min="1" max="10" value="3" id="setGenRate" class="range-input" oninput="updateSetting('genRate',this.value)"/>
+        </div>
+        <div class="setting-group">
+          <label class="setting-label">Transmission Speed: <span id="lblSpeed">5</span></label>
+          <input type="range" min="1" max="10" value="5" id="setSpeed" class="range-input" oninput="updateSetting('speed',this.value)"/>
+        </div>
+        <div class="setting-group">
+          <label class="setting-label">Cable Length: <span id="lblCable">500</span>m</label>
+          <input type="range" min="100" max="2000" step="100" value="500" id="setCable" class="range-input" oninput="updateSetting('cable',this.value)"/>
+        </div>
+        <div class="setting-group">
+          <label class="setting-label">Slot Time: <span id="lblSlot">51.2</span>μs</label>
+          <input type="range" min="10" max="200" step="0.1" value="51.2" id="setSlot" class="range-input" oninput="updateSetting('slot',this.value)"/>
+        </div>
+        <div class="setting-group">
+          <label class="setting-label">Max Retransmissions: <span id="lblMaxRetry">16</span></label>
+          <input type="range" min="1" max="32" value="16" id="setMaxRetry" class="range-input" oninput="updateSetting('maxRetry',this.value)"/>
+        </div>
+      </div>
+
+      <div class="glass-card">
+
+        <h3 class="card-title" style="margin-top:1.2rem">Presets</h3>
+        <div class="preset-buttons">
+          <button class="btn btn-secondary" onclick="applyPreset('light')">Light Load</button>
+          <button class="btn btn-warning" onclick="applyPreset('medium')">Medium Load</button>
+          <button class="btn btn-danger" onclick="applyPreset('heavy')">Heavy Load</button>
+        </div>
+
+        <div class="glass-card" style="margin-top:1.2rem;background:rgba(239,156,102,0.08)">
+          <h3 class="card-title">Current Config</h3>
+          <pre id="configPreview" class="config-preview"></pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+
+</main>
+
+<script src="script.js"></script>
+</body>
+</html>
